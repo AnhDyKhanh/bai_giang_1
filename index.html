@@ -23,69 +23,89 @@
     width: 100%;
     max-width: 600px;
   }
-  h1 { font-size: 1.4rem; color: #3b4fc8; margin-bottom: 6px; letter-spacing: 1px; }
-  .subtitle { font-size: 0.85rem; color: #888; margin-bottom: 28px; }
+  h1 { font-size: 1.4rem; color: #3b4fc8; margin-bottom: 6px; letter-spacing: 1px; text-align: center; }
+  .subtitle { font-size: 0.85rem; color: #888; margin-bottom: 20px; text-align: center; }
+  
+  .progress { text-align: center; font-weight: bold; color: #3b4fc8; margin-bottom: 16px; font-size: 1.1rem; }
+  
   .sentence {
+    display: none; /* Ẩn tất cả các câu mặc định */
     background: #f7f9ff;
     border: 1.5px solid #dde3f8;
     border-radius: 12px;
-    padding: 16px 18px;
+    padding: 20px;
     margin-bottom: 16px;
     transition: border 0.2s;
   }
+  .sentence.active { display: block; } /* Chỉ hiện câu đang active */
+  
   .sentence.correct { border-color: #4caf50; background: #f0fff4; }
   .sentence.wrong   { border-color: #f44336; background: #fff5f5; }
-  .sentence-header  { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-  .num { font-weight: 700; color: #3b4fc8; font-size: 0.95rem; min-width: 22px; }
-  audio { height: 32px; flex: 1; min-width: 0; }
+  
+  .sentence-header  { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  audio { height: 40px; flex: 1; min-width: 0; }
+  
   textarea {
     width: 100%;
     border: 1.5px solid #dde3f8;
     border-radius: 8px;
-    padding: 10px 12px;
-    font-size: 0.97rem;
+    padding: 12px;
+    font-size: 1rem;
     font-family: inherit;
     resize: vertical;
-    min-height: 48px;
+    min-height: 80px;
     outline: none;
     transition: border 0.2s;
     background: white;
   }
   textarea:focus { border-color: #3b4fc8; }
-  .feedback { font-size: 0.85rem; margin-top: 8px; min-height: 18px; display: none; }
+  
+  .feedback { font-size: 0.9rem; margin-top: 12px; min-height: 18px; display: none; padding: 8px; border-radius: 6px; }
   .feedback.show { display: block; }
-  .feedback.ok  { color: #388e3c; }
-  .feedback.bad { color: #d32f2f; }
-  .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+  .feedback.ok  { color: #2e7d32; background: #e8f5e9; }
+  .feedback.bad { color: #c62828; background: #ffebee; }
+  .feedback.warn { color: #ef6c00; background: #fff3e0; }
+  
+  .btn-row { display: flex; gap: 10px; margin-top: 16px; }
   button {
-    padding: 8px 16px; border: none; border-radius: 8px;
-    font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    padding: 10px 18px; border: none; border-radius: 8px;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
     transition: background 0.2s, transform 0.1s;
   }
   button:active { transform: scale(0.97); }
-  .checkBtn { background: #3b4fc8; color: white; }
-  .checkBtn:hover { background: #2d3da8; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  
+  .checkBtn { background: #3b4fc8; color: white; flex: 1; }
+  .checkBtn:hover:not(:disabled) { background: #2d3da8; }
   .resetBtn { background: #eef0fb; color: #3b4fc8; }
-  .resetBtn:hover { background: #dde3f8; }
+  .resetBtn:hover:not(:disabled) { background: #dde3f8; }
+  
+  .nav-btns { display: flex; justify-content: space-between; margin-top: 24px; border-top: 1px solid #eee; padding-top: 20px;}
+  .navBtn { background: #fff; border: 1.5px solid #3b4fc8; color: #3b4fc8; }
+  .navBtn:hover:not(:disabled) { background: #eef0fb; }
+  
   .score-box {
-    display: none; margin-top: 20px; padding: 14px 18px;
+    display: none; margin-top: 20px; padding: 16px;
     border-radius: 10px; background: #eef0fb;
-    text-align: center; font-size: 1.1rem; font-weight: 600; color: #3b4fc8;
+    text-align: center; font-size: 1.2rem; font-weight: 600; color: #3b4fc8;
   }
   .score-box.show { display: block; }
-  .global-btns { display: flex; gap: 12px; margin-top: 24px; }
-  .global-btns button { flex: 1; padding: 12px; font-size: 1rem; border-radius: 10px; }
 </style>
 </head>
 <body>
 <div class="card">
   <h1>🎧 DICTATION</h1>
   <div class="subtitle">Topic: HOBBIES &nbsp;·&nbsp; Nghe và gõ lại từng câu</div>
+  
+  <div class="progress" id="progressText">Câu 1 / 4</div>
+  
   <div id="sentences"></div>
-  <div class="global-btns">
-    <button class="checkBtn" onclick="checkAll()">✅ Kiểm tra tất cả</button>
-	<button class="resetBtn" onclick="resetAll()">🔄 Làm lại</button>
+  
+  <div class="nav-btns">
+    <button class="navBtn" id="prevBtn" onclick="changePage(-1)">⬅ Câu trước</button>
+    <button class="navBtn" id="nextBtn" onclick="changePage(1)">Câu tiếp ➡</button>
   </div>
+  
   <div class="score-box" id="scoreBox"></div>
 </div>
 
@@ -109,6 +129,11 @@ const DATA = [
   }
 ];
 
+let currentIndex = 0;
+// Mảng lưu số lần sai của từng câu
+let attempts = new Array(DATA.length).fill(0);
+const MAX_ATTEMPTS = 3; // Số lần thử tối đa trước khi hiện đáp án
+
 function normalize(str) {
   return str.trim().toLowerCase().replace(/[.,!?;:'"]/g, '');
 }
@@ -116,61 +141,131 @@ function normalize(str) {
 function render() {
   const container = document.getElementById('sentences');
   container.innerHTML = '';
+  
   DATA.forEach((item, i) => {
     container.innerHTML += `
-      <div class="sentence" id="s${i}">
+      <div class="sentence ${i === 0 ? 'active' : ''}" id="s${i}">
         <div class="sentence-header">
-          <span class="num">${i+1}.</span>
-          <audio controls src="${item.audio}" preload="none"></audio>
+          <audio id="audio${i}" controls src="${item.audio}" preload="none"></audio>
         </div>
-        <textarea id="ta${i}" placeholder="Gõ câu bạn nghe được..."></textarea>
+        <textarea id="ta${i}" placeholder="Gõ câu bạn nghe được vào đây..."></textarea>
         <div class="btn-row">
-          <button class="checkBtn" onclick="checkOne(${i})">✅ Kiểm tra</button>
-          <button class="resetBtn" onclick="resetOne(${i})">🔄 Làm lại</button>
+          <button class="checkBtn" id="chk${i}" onclick="checkOne(${i})">✅ Kiểm tra</button>
+          <button class="resetBtn" onclick="resetOne(${i})">🔄 Xóa gõ lại</button>
         </div>
         <div class="feedback" id="fb${i}"></div>
       </div>`;
   });
+  
+  updateNavButtons();
 }
 
 function checkOne(i) {
-  const val = document.getElementById(`ta${i}`).value;
+  const val = document.getElementById(`ta${i}`).value.trim();
   const fb  = document.getElementById(`fb${i}`);
   const box = document.getElementById(`s${i}`);
+  const checkBtn = document.getElementById(`chk${i}`);
+  
+  // Bắt buộc phải gõ gì đó
+  if (val === '') {
+    fb.className = 'feedback show warn';
+    fb.innerHTML = '⚠️ Bạn chưa gõ gì cả. Hãy nghe và thử gõ lại nhé!';
+    return;
+  }
+
+  // Kiểm tra đáp án
   if (normalize(val) === normalize(DATA[i].answer)) {
-    box.className = 'sentence correct';
+    box.className = 'sentence active correct';
     fb.className = 'feedback show ok';
-    fb.textContent = '✅ Chính xác!';
+    fb.innerHTML = '✅ Chính xác! Giỏi lắm.';
+    checkBtn.disabled = true; // Khóa nút kiểm tra
+    
+    // Nếu làm xong câu cuối, hiện nút Tổng kết
+    if (currentIndex === DATA.length - 1) {
+        checkAllDone();
+    }
   } else {
-    box.className = 'sentence wrong';
-    fb.className = 'feedback show bad';
-    fb.innerHTML = `❌ Sai &nbsp;·&nbsp; Đáp án: <strong>${DATA[i].answer}</strong>`;
+    attempts[i]++;
+    box.className = 'sentence active wrong';
+    
+    if (attempts[i] >= MAX_ATTEMPTS) {
+        fb.className = 'feedback show bad';
+        fb.innerHTML = `❌ Bạn đã thử ${MAX_ATTEMPTS} lần. <br>Đáp án là: <strong>${DATA[i].answer}</strong>`;
+        checkBtn.disabled = true; // Khóa nút kiểm tra
+    } else {
+        const left = MAX_ATTEMPTS - attempts[i];
+        fb.className = 'feedback show warn';
+        fb.innerHTML = `❌ Sai rồi. Bạn còn <strong>${left} lần thử</strong>. Hãy nghe thật kỹ lại nhé!`;
+    }
   }
 }
 
 function resetOne(i) {
+  const checkBtn = document.getElementById(`chk${i}`);
+  if(checkBtn.disabled && attempts[i] < MAX_ATTEMPTS) {
+     // Không cho reset nếu đã làm đúng (trừ khi muốn cho làm lại từ đầu)
+     return;
+  }
+  
   document.getElementById(`ta${i}`).value = '';
   document.getElementById(`fb${i}`).className = 'feedback';
-  document.getElementById(`s${i}`).className = 'sentence';
+  document.getElementById(`s${i}`).className = 'sentence active';
+  
+  // Trả lại trạng thái ban đầu nếu chưa bị khóa do sai quá số lần
+  if (attempts[i] < MAX_ATTEMPTS) {
+    checkBtn.disabled = false;
+  }
 }
 
-function checkAll() {
+function changePage(direction) {
+  // Dừng audio đang phát khi chuyển trang
+  const currentAudio = document.getElementById(`audio${currentIndex}`);
+  if(currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+  }
+
+  // Ẩn câu hiện tại
+  document.getElementById(`s${currentIndex}`).classList.remove('active');
+  
+  // Cập nhật index
+  currentIndex += direction;
+  
+  // Hiện câu mới
+  document.getElementById(`s${currentIndex}`).classList.add('active');
+  
+  updateNavButtons();
+}
+
+function updateNavButtons() {
+  document.getElementById('progressText').textContent = `Câu ${currentIndex + 1} / ${DATA.length}`;
+  
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  
+  prevBtn.disabled = currentIndex === 0;
+  
+  if (currentIndex === DATA.length - 1) {
+    nextBtn.textContent = "Hoàn thành 🏁";
+    nextBtn.onclick = checkAllDone;
+  } else {
+    nextBtn.textContent = "Câu tiếp ➡";
+    nextBtn.onclick = () => changePage(1);
+  }
+}
+
+function checkAllDone() {
   let correct = 0;
   DATA.forEach((item, i) => {
-    checkOne(i);
     const fb = document.getElementById(`fb${i}`);
     if (fb.classList.contains('ok')) correct++;
   });
   const scoreBox = document.getElementById('scoreBox');
   scoreBox.className = 'score-box show';
-  scoreBox.textContent = `🏆 Kết quả: ${correct} / ${DATA.length} câu đúng`;
+  scoreBox.innerHTML = `🏆 Kết quả: <strong>${correct} / ${DATA.length}</strong> câu đúng!`;
 }
 
-function resetAll() {
-  DATA.forEach((_, i) => resetOne(i));
-  document.getElementById('scoreBox').className = 'score-box';
-}
-
+// Khởi tạo
 render();
 </script>
 </body>
