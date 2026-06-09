@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dictation – HOBBIES</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f0f4ff;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    padding: 32px 28px;
+    width: 100%;
+    max-width: 600px;
+  }
+  h1 { font-size: 1.4rem; color: #3b4fc8; margin-bottom: 6px; letter-spacing: 1px; }
+  .subtitle { font-size: 0.85rem; color: #888; margin-bottom: 28px; }
+  .sentence {
+    background: #f7f9ff;
+    border: 1.5px solid #dde3f8;
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    transition: border 0.2s;
+  }
+  .sentence.correct { border-color: #4caf50; background: #f0fff4; }
+  .sentence.wrong   { border-color: #f44336; background: #fff5f5; }
+  .sentence-header  { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .num { font-weight: 700; color: #3b4fc8; font-size: 0.95rem; min-width: 22px; }
+  audio { height: 32px; flex: 1; min-width: 0; }
+  textarea {
+    width: 100%;
+    border: 1.5px solid #dde3f8;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.97rem;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 48px;
+    outline: none;
+    transition: border 0.2s;
+    background: white;
+  }
+  textarea:focus { border-color: #3b4fc8; }
+  .feedback { font-size: 0.85rem; margin-top: 8px; min-height: 18px; display: none; }
+  .feedback.show { display: block; }
+  .feedback.ok  { color: #388e3c; }
+  .feedback.bad { color: #d32f2f; }
+  .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+  button {
+    padding: 8px 16px; border: none; border-radius: 8px;
+    font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+  button:active { transform: scale(0.97); }
+  .checkBtn { background: #3b4fc8; color: white; }
+  .checkBtn:hover { background: #2d3da8; }
+  .resetBtn { background: #eef0fb; color: #3b4fc8; }
+  .resetBtn:hover { background: #dde3f8; }
+  .score-box {
+    display: none; margin-top: 20px; padding: 14px 18px;
+    border-radius: 10px; background: #eef0fb;
+    text-align: center; font-size: 1.1rem; font-weight: 600; color: #3b4fc8;
+  }
+  .score-box.show { display: block; }
+  .global-btns { display: flex; gap: 12px; margin-top: 24px; }
+  .global-btns button { flex: 1; padding: 12px; font-size: 1rem; border-radius: 10px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🎧 DICTATION</h1>
+  <div class="subtitle">Topic: HOBBIES &nbsp;·&nbsp; Nghe và gõ lại từng câu</div>
+  <div id="sentences"></div>
+  <div class="global-btns">
+    <button class="checkBtn" onclick="checkAll()">✅ Kiểm tra tất cả</button>
+	<button class="resetBtn" onclick="resetAll()">🔄 Làm lại</button>
+  </div>
+  <div class="score-box" id="scoreBox"></div>
+</div>
+
+<script>
+const DATA = [
+  {
+    audio: "https://drive.google.com/uc?export=download&id=1Wmomu4xSg9nBHB0N7eB0nMLfBP4w7nq_",
+    answer: "I like to collect things."
+  },
+  {
+    audio: "https://drive.google.com/uc?export=download&id=1McZ9ZDBUO-em3PSJodmLx8y64U5CH1ii",
+    answer: "I collect comic books, stamps and coins."
+  },
+  {
+    audio: "https://drive.google.com/uc?export=download&id=1_Fvj_DLMtq-Nh__hDZME027Vxn84yqmo",
+    answer: "I trade comic books with some of my friends,"
+  },
+  {
+    audio: "https://drive.google.com/uc?export=download&id=1iATDXTxERFug4QworHFP3bZGqV0Fz5ZV",
+    answer: "and sometimes I buy comic books at stores."
+  }
+];
+
+function normalize(str) {
+  return str.trim().toLowerCase().replace(/[.,!?;:'"]/g, '');
+}
+
+function render() {
+  const container = document.getElementById('sentences');
+  container.innerHTML = '';
+  DATA.forEach((item, i) => {
+    container.innerHTML += `
+      <div class="sentence" id="s${i}">
+        <div class="sentence-header">
+          <span class="num">${i+1}.</span>
+          <audio controls src="${item.audio}" preload="none"></audio>
+        </div>
+        <textarea id="ta${i}" placeholder="Gõ câu bạn nghe được..."></textarea>
+        <div class="btn-row">
+          <button class="checkBtn" onclick="checkOne(${i})">✅ Kiểm tra</button>
+          <button class="resetBtn" onclick="resetOne(${i})">🔄 Làm lại</button>
+        </div>
+        <div class="feedback" id="fb${i}"></div>
+      </div>`;
+  });
+}
+
+function checkOne(i) {
+  const val = document.getElementById(`ta${i}`).value;
+  const fb  = document.getElementById(`fb${i}`);
+  const box = document.getElementById(`s${i}`);
+  if (normalize(val) === normalize(DATA[i].answer)) {
+    box.className = 'sentence correct';
+    fb.className = 'feedback show ok';
+    fb.textContent = '✅ Chính xác!';
+  } else {
+    box.className = 'sentence wrong';
+    fb.className = 'feedback show bad';
+    fb.innerHTML = `❌ Sai &nbsp;·&nbsp; Đáp án: <strong>${DATA[i].answer}</strong>`;
+  }
+}
+
+function resetOne(i) {
+  document.getElementById(`ta${i}`).value = '';
+  document.getElementById(`fb${i}`).className = 'feedback';
+  document.getElementById(`s${i}`).className = 'sentence';
+}
+
+function checkAll() {
+  let correct = 0;
+  DATA.forEach((item, i) => {
+    checkOne(i);
+    const fb = document.getElementById(`fb${i}`);
+    if (fb.classList.contains('ok')) correct++;
+  });
+  const scoreBox = document.getElementById('scoreBox');
+  scoreBox.className = 'score-box show';
+  scoreBox.textContent = `🏆 Kết quả: ${correct} / ${DATA.length} câu đúng`;
+}
+
+function resetAll() {
+  DATA.forEach((_, i) => resetOne(i));
+  document.getElementById('scoreBox').className = 'score-box';
+}
+
+render();
+</script>
+</body>
+</html>
