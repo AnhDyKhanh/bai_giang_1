@@ -146,7 +146,7 @@ function render() {
     container.innerHTML += `
       <div class="sentence ${i === 0 ? 'active' : ''}" id="s${i}">
         <div class="sentence-header">
-          <audio id="audio${i}" controls src="${item.audio}" preload="none"></audio>
+          <audio id="audio${i}" controls src="${item.audio}" preload="metadata"></audio>
         </div>
         <textarea id="ta${i}" placeholder="Gõ câu bạn nghe được vào đây..."></textarea>
         <div class="btn-row">
